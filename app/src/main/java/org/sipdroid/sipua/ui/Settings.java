@@ -44,6 +44,7 @@ import android.preference.ListPreference;
 import android.preference.PreferenceActivity;
 import android.preference.PreferenceManager;
 import android.text.InputType;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.EditText;
@@ -637,9 +638,12 @@ public class Settings extends PreferenceActivity implements OnSharedPreferenceCh
        	}
        	getPreferenceScreen().findPreference(PREF_BLUETOOTH).setEnabled(RtpStreamReceiver.isBluetoothSupported());
     }
+	static final String TAG = "SETI2NG";
 
-    @Override
+	@Override
 	public void onClick(DialogInterface arg0, int arg1) {
+		Log.d(TAG, "=========11111=======");
+
 		Editor edit = settings.edit();
  		edit.putString(mKey, transferText.getText().toString());
 		edit.commit();
