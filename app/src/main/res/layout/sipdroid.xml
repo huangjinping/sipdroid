@@ -127,6 +127,8 @@
 				android:layout_width="fill_parent"
 				android:layout_height="wrap_content"
 				android:text=""
+				android:visibility="gone"
+
 				android:singleLine="true"
 				android:hint="@string/hint"
 				android:inputType="textEmailAddress"
