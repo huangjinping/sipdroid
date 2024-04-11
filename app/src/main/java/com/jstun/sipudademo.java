@@ -77,7 +77,7 @@ public class sipudademo extends Activity {
 
     private void init() {
         accountList.clear();
-
+//
         for (int i = 1; i < 10; i++) {
             Map<String, String> map = new HashMap<>();
             String acount = "10" + createText(i);
@@ -85,6 +85,26 @@ public class sipudademo extends Activity {
             accountList.add(map);
         }
 
+//        for (int i = 1; i < 1000; i++) {
+//            Map<String, String> map = new HashMap<>();
+//            String acount = "10" + createText(i);
+//
+//            if (i < 100) {
+//                acount = "10" + createText(i);
+//            } else {
+//                acount = "1" + createText(i);
+//            }
+//            map.put("accountName", acount);
+//            accountList.add(map);
+//        }
+
+
+//        for (int i = 1; i < 10; i++) {
+//            Map<String, String> map = new HashMap<>();
+//            String acount = "20" + createText(i);
+//            map.put("accountName", acount);
+//            accountList.add(map);
+//        }
 
     }
 
@@ -146,7 +166,9 @@ public class sipudademo extends Activity {
         configSip.setServer("13.246.65.101");
         configSip.setDns0("8.8.8.8");
         configSip.setPort("65060");
-        configSip.setUsername(map.get("accountName"));
+//        configSip.setUsername(map.get("accountName"));
+        configSip.setUsername("1099");
+
         configSip.setProtocol("TCP");
         configSip.setPassword("!@#123Qw");
         SipuaConfig.init(this, configSip);

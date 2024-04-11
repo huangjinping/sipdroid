@@ -27,12 +27,15 @@ public class SipuaConfig {
         edit.putString("protocol", configSip.getProtocol());
         edit.putString("protocol1", configSip.getProtocol());
         edit.putString("password", configSip.getPassword());
+        edit.putBoolean("3g", true);
+        edit.putBoolean("wlan", true);
+
         edit.commit();
     }
 
     public static void startInCall(Activity activity, String target) {
         Receiver.engine(activity).registerMore();
-        Sipdroid.on(activity,true);
+        Sipdroid.on(activity, true);
         Receiver.engine(activity).call(target, true);
     }
 }
