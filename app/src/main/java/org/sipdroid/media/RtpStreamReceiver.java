@@ -35,6 +35,7 @@ import org.sipdroid.sipua.ui.InCallScreen;
 import org.sipdroid.sipua.ui.Receiver;
 import org.sipdroid.sipua.ui.Sipdroid;
 import org.sipdroid.codecs.Codecs;
+
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -50,6 +51,7 @@ import android.os.PowerManager;
 import android.os.SystemClock;
 import android.preference.PreferenceManager;
 import android.provider.Settings;
+import android.util.Log;
 import android.view.KeyEvent;
 import android.widget.Toast;
 
@@ -380,8 +382,12 @@ public class RtpStreamReceiver extends Thread {
 		edit.putBoolean(org.sipdroid.sipua.ui.Settings.PREF_SETMODE, true);
 		edit.commit();
 		AudioManager am = (AudioManager) Receiver.mContext.getSystemService(Context.AUDIO_SERVICE);
+		Log.d("setMode","=============>>>>");
+
 		if (Integer.parseInt(Build.VERSION.SDK) >= 5) {
+			Log.d("setMode","=============>>>>"+(mode == AudioManager.MODE_NORMAL));
 			am.setSpeakerphoneOn(mode == AudioManager.MODE_NORMAL);
+
 			if (samsung) RtpStreamSender.changed = true;
 			if (Integer.parseInt(Build.VERSION.SDK) >= 31) {
 				ArrayList<Integer> targetTypes = new ArrayList<Integer>();
@@ -406,16 +412,27 @@ public class RtpStreamReceiver extends Thread {
 	}
 	
 	public static void restoreMode() {
+
+
+		Log.d("restoreMode","==========1=");
 		if (PreferenceManager.getDefaultSharedPreferences(Receiver.mContext).getBoolean(org.sipdroid.sipua.ui.Settings.PREF_SETMODE, org.sipdroid.sipua.ui.Settings.DEFAULT_SETMODE)) {
 			Editor edit = PreferenceManager.getDefaultSharedPreferences(Receiver.mContext).edit();
 			edit.putBoolean(org.sipdroid.sipua.ui.Settings.PREF_SETMODE, false);
 			edit.commit();
+			Log.d("restoreMode","==========2=11");
+
 			if (Receiver.pstn_state == null || Receiver.pstn_state.equals("IDLE")) {
 				AudioManager am = (AudioManager) Receiver.mContext.getSystemService(Context.AUDIO_SERVICE);
-				if (Integer.parseInt(Build.VERSION.SDK) >= 5)
+				if (Integer.parseInt(Build.VERSION.SDK) >= 5){
 					am.setSpeakerphoneOn(false);
-				else
+					Log.d("restoreMode","==========2=");
+
+				} else{
+					Log.d("restoreMode","==========3=");
+
 					am.setMode(AudioManager.MODE_NORMAL);
+				}
+
 			}
 		}
 	}

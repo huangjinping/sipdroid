@@ -3,19 +3,19 @@ package org.sipdroid.sipua.phone;
 /*
  * Copyright (C) 2009 The Sipdroid Open Source Project
  * Copyright (C) 2006 The Android Open Source Project
- * 
+ *
  * This file is part of Sipdroid (http://www.sipdroid.org)
- * 
+ *
  * Sipdroid is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * This source code is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this source code; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
@@ -32,8 +32,6 @@ import android.content.Context;
 import android.content.res.Configuration;
 import android.graphics.drawable.Drawable;
 import android.net.Uri;
-//import android.pim.ContactsAsyncHelper;
-//import android.pim.DateUtils;
 import android.provider.Contacts.People;
 import android.text.TextUtils;
 import android.util.AttributeSet;
@@ -46,7 +44,8 @@ import android.widget.Chronometer;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.TextView;
-import org.sipdroid.sipua.*;
+
+import org.sipdroid.sipua.R;
 import org.sipdroid.sipua.ui.Receiver;
 
 /**
@@ -56,44 +55,7 @@ import org.sipdroid.sipua.ui.Receiver;
  */
 public class CallCard extends FrameLayout
         implements CallerInfoAsyncQuery.OnQueryCompleteListener,
-                ContactsAsyncHelper.OnImageLoadCompleteListener{
-    private static final String LOG_TAG = "PHONE/CallCard";
-    private static final boolean DBG = false;
-
-    // Top-level subviews of the CallCard
-    private ViewGroup mMainCallCard;
-    private ViewGroup mOtherCallOngoingInfoArea;
-    private ViewGroup mOtherCallOnHoldInfoArea;
-
-    // "Upper" and "lower" title widgets
-    private TextView mUpperTitle;
-    private ViewGroup mLowerTitleViewGroup;
-    private TextView mLowerTitle;
-    private ImageView mLowerTitleIcon;
-    public Chronometer mElapsedTime;
-
-    // Text colors, used with the lower title and "other call" info areas
-    private int mTextColorConnected;
-    private int mTextColorEnded;
-    private int mTextColorOnHold;
-
-    private ImageView mPhoto;
-    private TextView mName;
-    private TextView mPhoneNumber;
-    private TextView mLabel;
-
-    // "Other call" info area
-    private TextView mOtherCallOngoingName;
-    private TextView mOtherCallOngoingStatus;
-    private TextView mOtherCallOnHoldName;
-    private TextView mOtherCallOnHoldStatus;
-
-    // Menu button hint
-    private TextView mMenuButtonHint;
-
-    // Track the state for the photo.
-    private ContactsAsyncHelper.ImageTracker mPhotoTracker;
-
+        ContactsAsyncHelper.OnImageLoadCompleteListener {
     // A few hardwired constants used in our screen layout.
     // TODO: These should all really come from resources, but that's
     // nontrivial; see the javadoc for the ConfigurationHelper class.
@@ -103,11 +65,37 @@ public class CallCard extends FrameLayout
     static final int MAIN_CALLCARD_MIN_HEIGHT_LANDSCAPE = 200;
     static final int CALLCARD_SIDE_MARGIN_LANDSCAPE = 50;
     static final float TITLE_TEXT_SIZE_LANDSCAPE = 22F;  // scaled pixels
+    private static final String LOG_TAG = "PHONE/CallCard";
+    private static final boolean DBG = false;
+    public Chronometer mElapsedTime;
+    // Top-level subviews of the CallCard
+    private ViewGroup mMainCallCard;
+    private ViewGroup mOtherCallOngoingInfoArea;
+    private ViewGroup mOtherCallOnHoldInfoArea;
+    // "Upper" and "lower" title widgets
+    private TextView mUpperTitle;
+    private ViewGroup mLowerTitleViewGroup;
+    private TextView mLowerTitle;
+    private ImageView mLowerTitleIcon;
+    // Text colors, used with the lower title and "other call" info areas
+    private int mTextColorConnected;
+    private int mTextColorEnded;
+    private int mTextColorOnHold;
+    private ImageView mPhoto;
+    private TextView mName;
+    private TextView mPhoneNumber;
+    private TextView mLabel;
+    // "Other call" info area
+    private TextView mOtherCallOngoingName;
+    private TextView mOtherCallOngoingStatus;
+    private TextView mOtherCallOnHoldName;
+    private TextView mOtherCallOnHoldStatus;
+    // Menu button hint
+    private TextView mMenuButtonHint;
+    // Track the state for the photo.
+    private ContactsAsyncHelper.ImageTracker mPhotoTracker;
+    private SlidingCardManager mSlidingCardManager;
 
-    public void update(int x,int y,int w,int h) {
-    	setPadding(0, y, 0, 0);
-    }
-    
     public CallCard(Context context, AttributeSet attrs) {
         super(context, attrs);
 
@@ -124,6 +112,43 @@ public class CallCard extends FrameLayout
 
         // create a new object to track the state for the photo.
         mPhotoTracker = new ContactsAsyncHelper.ImageTracker();
+    }
+
+    /**
+     * Try to display the cached image from the callerinfo object.
+     *
+     * @return true if we were able to find the image in the cache, false otherwise.
+     */
+    private static final boolean showCachedImage(ImageView view, CallerInfo ci) {
+        if ((ci != null) && ci.isCachedPhotoCurrent) {
+            if (ci.cachedPhoto != null) {
+                showImage(view, ci.cachedPhoto);
+            } else {
+                showImage(view, R.drawable.picture_unknown);
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Helper function to display the resource in the imageview AND ensure its visibility.
+     */
+    private static final void showImage(ImageView view, int resource) {
+        view.setImageResource(resource);
+        view.setVisibility(View.VISIBLE);
+    }
+
+    /**
+     * Helper function to display the drawable in the imageview AND ensure its visibility.
+     */
+    private static final void showImage(ImageView view, Drawable drawable) {
+        view.setImageDrawable(drawable);
+        view.setVisibility(View.VISIBLE);
+    }
+
+    public void update(int x, int y, int w, int h) {
+        setPadding(0, y, 0, 0);
     }
 
     public void reset() {
@@ -244,21 +269,23 @@ public class CallCard extends FrameLayout
      */
     public void displayMainCallStatus(Phone phone, Call call) {
         if (DBG) log("displayMainCallStatus(phone " + phone
-                     + ", call " + call + ", state" + call.getState() + ")...");
+                + ", call " + call + ", state" + call.getState() + ")...");
 
         Call.State state = call.getState();
         int callCardBackgroundResid = 0;
 
         // Background frame resources are different between portrait/landscape:
         boolean landscapeMode = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
+        Log.d("mystate", "state110----" + state);
 
         switch (state) {
+
             case ACTIVE:
                 showCallConnected();
 
                 callCardBackgroundResid =
                         landscapeMode ? R.drawable.incall_frame_connected_tall_land
-                        : R.drawable.incall_frame_connected_tall_port;
+                                : R.drawable.incall_frame_connected_tall_port;
 
                 // update timer field
                 if (DBG) log("displayMainCallStatus: start periodicUpdateTimer");
@@ -269,7 +296,7 @@ public class CallCard extends FrameLayout
 
                 callCardBackgroundResid =
                         landscapeMode ? R.drawable.incall_frame_hold_tall_land
-                        : R.drawable.incall_frame_hold_tall_port;
+                                : R.drawable.incall_frame_hold_tall_port;
                 break;
 
             case DISCONNECTED:
@@ -278,7 +305,7 @@ public class CallCard extends FrameLayout
 
                 callCardBackgroundResid =
                         landscapeMode ? R.drawable.incall_frame_ended_tall_land
-                        : R.drawable.incall_frame_ended_tall_port;
+                                : R.drawable.incall_frame_ended_tall_port;
 
                 break;
 
@@ -288,7 +315,7 @@ public class CallCard extends FrameLayout
 
                 callCardBackgroundResid =
                         landscapeMode ? R.drawable.incall_frame_normal_tall_land
-                        : R.drawable.incall_frame_normal_tall_port;
+                                : R.drawable.incall_frame_normal_tall_port;
 
                 break;
 
@@ -298,8 +325,8 @@ public class CallCard extends FrameLayout
 
                 callCardBackgroundResid =
                         landscapeMode ? R.drawable.incall_frame_normal_tall_land
-                        : R.drawable.incall_frame_normal_tall_port;
-               break;
+                                : R.drawable.incall_frame_normal_tall_port;
+                break;
 
             case IDLE:
                 // The "main CallCard" should never display an idle call!
@@ -313,7 +340,7 @@ public class CallCard extends FrameLayout
 
         updateCardTitleWidgets(phone, call);
 
- {
+        {
             // Update onscreen info for a regular call (which presumably
             // has only one connection.)
             Connection conn = call.getEarliestConnection();
@@ -355,13 +382,13 @@ public class CallCard extends FrameLayout
                         CallerInfo ci = (CallerInfo) o;
                         if (DBG) log("   ==> Got CallerInfo; updating display: ci = " + ci);
                         updateDisplayForPerson(ci, false, false, call);
-                    } else if (o instanceof PhoneUtils.CallerInfoToken){
+                    } else if (o instanceof PhoneUtils.CallerInfoToken) {
                         CallerInfo ci = ((PhoneUtils.CallerInfoToken) o).currentInfo;
                         if (DBG) log("   ==> Got CallerInfoToken; updating display: ci = " + ci);
                         updateDisplayForPerson(ci, false, true, call);
                     } else {
                         Log.w(LOG_TAG, "displayMainCallStatus: runQuery was false, "
-                              + "but we didn't have a cached CallerInfo object!  o = " + o);
+                                + "but we didn't have a cached CallerInfo object!  o = " + o);
                         // TODO: any easy way to recover here (given that
                         // the CallCard is probably displaying stale info
                         // right now?)  Maybe force the CallCard into the
@@ -397,7 +424,7 @@ public class CallCard extends FrameLayout
             updateDisplayForPerson(ci, false, false, call);
             updatePhotoForCallState(call);
 
-        } else if (cookie instanceof TextView){
+        } else if (cookie instanceof TextView) {
             if (DBG) log("callerinfo query complete, updating ui from ongoing or onhold");
             ((TextView) cookie).setText(PhoneUtils.getCompactNameFromCallerInfo(ci, getContext()));
         }
@@ -408,7 +435,7 @@ public class CallCard extends FrameLayout
      * make sure that the call state is reflected after the image is loaded.
      */
     public void onImageLoadComplete(int token, Object cookie, ImageView iView,
-            boolean imagePresent){
+                                    boolean imagePresent) {
         if (cookie != null) {
             updatePhotoForCallState((Call) cookie);
         }
@@ -458,22 +485,22 @@ public class CallCard extends FrameLayout
             mLowerTitle.setTextColor(mTextColorEnded);
             mElapsedTime.setTextColor(mTextColorEnded);
             if (call.base != 0) {
-	            mElapsedTime.setBase(call.base);
-	            mElapsedTime.start();
-	            mElapsedTime.stop();
+                mElapsedTime.setBase(call.base);
+                mElapsedTime.start();
+                mElapsedTime.stop();
             } else
-            	mElapsedTime.setVisibility(View.INVISIBLE);
+                mElapsedTime.setVisibility(View.INVISIBLE);
             mUpperTitle.setText("");
         } else {
             // All other states use the "upper title":
             mUpperTitle.setText(cardTitle);
             mLowerTitleViewGroup.setVisibility(View.INVISIBLE);
             if (state != Call.State.HOLDING)
-            	mElapsedTime.setVisibility(View.INVISIBLE);
+                mElapsedTime.setVisibility(View.INVISIBLE);
         }
     }
 
-     /**
+    /**
      * Returns the "card title" displayed at the top of a foreground
      * ("active") CallCard to indicate the current state of this call, like
      * "Dialing" or "In call" or "On hold".  A null return value means that
@@ -543,27 +570,27 @@ public class CallCard extends FrameLayout
                 String name;
 
                 // First, see if we need to query.
- {
-                    // perform query and update the name temporarily
-                    // make sure we hand the textview we want updated to the
-                    // callback function.
-                    if (DBG) log("==> NOT a conf call; call startGetCallerInfo...");
-                    PhoneUtils.CallerInfoToken info = PhoneUtils.startGetCallerInfo(
-                            getContext(), call, this, mOtherCallOnHoldName);
-                    name = PhoneUtils.getCompactNameFromCallerInfo(info.currentInfo, getContext());
-                }
+            {
+                // perform query and update the name temporarily
+                // make sure we hand the textview we want updated to the
+                // callback function.
+                if (DBG) log("==> NOT a conf call; call startGetCallerInfo...");
+                PhoneUtils.CallerInfoToken info = PhoneUtils.startGetCallerInfo(
+                        getContext(), call, this, mOtherCallOnHoldName);
+                name = PhoneUtils.getCompactNameFromCallerInfo(info.currentInfo, getContext());
+            }
 
-                mOtherCallOnHoldName.setText(name);
+            mOtherCallOnHoldName.setText(name);
 
-                // The call here is always "on hold", so use the orange "hold" frame
-                // and orange text color:
-                setOnHoldInfoAreaBackgroundResource(R.drawable.incall_frame_hold_short);
-                mOtherCallOnHoldName.setTextColor(mTextColorOnHold);
-                mOtherCallOnHoldStatus.setTextColor(mTextColorOnHold);
+            // The call here is always "on hold", so use the orange "hold" frame
+            // and orange text color:
+            setOnHoldInfoAreaBackgroundResource(R.drawable.incall_frame_hold_short);
+            mOtherCallOnHoldName.setTextColor(mTextColorOnHold);
+            mOtherCallOnHoldStatus.setTextColor(mTextColorOnHold);
 
-                mOtherCallOnHoldInfoArea.setVisibility(View.VISIBLE);
+            mOtherCallOnHoldInfoArea.setVisibility(View.VISIBLE);
 
-                break;
+            break;
 
             default:
                 // There's actually no call on hold.  (Presumably this call's
@@ -598,26 +625,26 @@ public class CallCard extends FrameLayout
                 String name;
 
                 // First, see if we need to query.
- {
-                    // perform query and update the name temporarily
-                    // make sure we hand the textview we want updated to the
-                    // callback function.
-                    PhoneUtils.CallerInfoToken info = PhoneUtils.startGetCallerInfo(
-                            getContext(), call, this, mOtherCallOngoingName);
-                    name = PhoneUtils.getCompactNameFromCallerInfo(info.currentInfo, getContext());
-                }
+            {
+                // perform query and update the name temporarily
+                // make sure we hand the textview we want updated to the
+                // callback function.
+                PhoneUtils.CallerInfoToken info = PhoneUtils.startGetCallerInfo(
+                        getContext(), call, this, mOtherCallOngoingName);
+                name = PhoneUtils.getCompactNameFromCallerInfo(info.currentInfo, getContext());
+            }
 
-                mOtherCallOngoingName.setText(name);
+            mOtherCallOngoingName.setText(name);
 
-                // The call here is always "ongoing", so use the green "connected" frame
-                // and green text color:
-                setOngoingInfoAreaBackgroundResource(R.drawable.incall_frame_connected_short);
-                mOtherCallOngoingName.setTextColor(mTextColorConnected);
-                mOtherCallOngoingStatus.setTextColor(mTextColorConnected);
+            // The call here is always "ongoing", so use the green "connected" frame
+            // and green text color:
+            setOngoingInfoAreaBackgroundResource(R.drawable.incall_frame_connected_short);
+            mOtherCallOngoingName.setTextColor(mTextColorConnected);
+            mOtherCallOngoingStatus.setTextColor(mTextColorConnected);
 
-                mOtherCallOngoingInfoArea.setVisibility(View.VISIBLE);
+            mOtherCallOngoingInfoArea.setVisibility(View.VISIBLE);
 
-                break;
+            break;
 
             default:
                 // There's actually no ongoing call.  (Presumably this call's
@@ -628,14 +655,13 @@ public class CallCard extends FrameLayout
         }
     }
 
-
     private String getCallFailedString(Call call) {
-	int resID = R.string.card_title_call_ended;
+        int resID = R.string.card_title_call_ended;
 
-	if (Receiver.call_end_reason != -1)
-	    resID = Receiver.call_end_reason;
+        if (Receiver.call_end_reason != -1)
+            resID = Receiver.call_end_reason;
 
-	return getContext().getString(resID);
+        return getContext().getString(resID);
     }
 
     private void showCallConnecting() {
@@ -657,6 +683,7 @@ public class CallCard extends FrameLayout
         if (DBG) log("showCallEnded()...");
         // TODO: remove if truly unused
     }
+
     private void showCallOnhold() {
         if (DBG) log("showCallOnhold()...");
         // TODO: remove if truly unused
@@ -665,7 +692,7 @@ public class CallCard extends FrameLayout
     /**
      * Updates the name / photo / number / label fields on the CallCard
      * based on the specified CallerInfo.
-     *
+     * <p>
      * If the current call is a conference call, use
      * updateDisplayForConference() instead.
      */
@@ -700,7 +727,7 @@ public class CallCard extends FrameLayout
 
             if (TextUtils.isEmpty(info.name)) {
                 if (TextUtils.isEmpty(info.phoneNumber)) {
-                	{
+                    {
                         name = getContext().getString(R.string.unknown);
                     }
                 } else {
@@ -713,7 +740,7 @@ public class CallCard extends FrameLayout
             }
             personUri = ContentUris.withAppendedId(People.CONTENT_URI, info.person_id);
         } else {
-        	{
+            {
                 name = getContext().getString(R.string.unknown);
             }
         }
@@ -732,7 +759,7 @@ public class CallCard extends FrameLayout
         // the image load step if the image data is cached.
         if (isTemporary && (info == null || !info.isCachedPhotoCurrent)) {
             mPhoto.setVisibility(View.INVISIBLE);
-        } else if (info != null && info.photoResource != 0){
+        } else if (info != null && info.photoResource != 0) {
             showImage(mPhoto, info.photoResource);
         } else if (!showCachedImage(mPhoto, info)) {
             // Load the image with a callback to update the image state.
@@ -745,7 +772,7 @@ public class CallCard extends FrameLayout
             mPhoneNumber.setVisibility(View.VISIBLE);
         } else {
 //            mPhoneNumber.setVisibility(View.GONE);
-        	mPhoneNumber.setText("");
+            mPhoneNumber.setText("");
         }
 
         if (label != null) {
@@ -753,14 +780,14 @@ public class CallCard extends FrameLayout
             mLabel.setVisibility(View.VISIBLE);
         } else {
 //            mLabel.setVisibility(View.GONE);
-        	mLabel.setText("");
+            mLabel.setText("");
         }
     }
 
     /**
      * Updates the CallCard "photo" IFF the specified Call is in a state
      * that needs a special photo (like "busy" or "dialing".)
-     *
+     * <p>
      * If the current call does not require a special image in the "photo"
      * slot onscreen, don't do anything, since presumably the photo image
      * has already been set (to the photo of the person we're talking, or
@@ -785,7 +812,7 @@ public class CallCard extends FrameLayout
                 if (c != null) {
                     Connection.DisconnectCause cause = c.getDisconnectCause();
                     if ((cause == Connection.DisconnectCause.BUSY)
-                        || (cause == Connection.DisconnectCause.CONGESTION)) {
+                            || (cause == Connection.DisconnectCause.CONGESTION)) {
                         photoImageResource = R.drawable.picture_busy;
                     }
                 } else if (DBG) {
@@ -818,49 +845,49 @@ public class CallCard extends FrameLayout
 
                 // look for the photoResource if it is available.
                 CallerInfo ci = null;
+            {
+                Connection conn = call.getEarliestConnection();
+                if (conn != null) {
+                    Object o = conn.getUserData();
+                    if (o instanceof CallerInfo) {
+                        ci = (CallerInfo) o;
+                    } else if (o instanceof PhoneUtils.CallerInfoToken) {
+                        ci = ((PhoneUtils.CallerInfoToken) o).currentInfo;
+                    }
+                }
+            }
+
+            if (ci != null) {
+                photoImageResource = ci.photoResource;
+            }
+
+            // If no photoResource found, check to see if this is a conference call. If
+            // it is not a conference call:
+            //   1. Try to show the cached image
+            //   2. If the image is not cached, check to see if a load request has been
+            //      made already.
+            //   3. If the load request has not been made [DISPLAY_DEFAULT], start the
+            //      request and note that it has started by updating photo state with
+            //      [DISPLAY_IMAGE].
+            // Load requests started in (3) use a placeholder image of -1 to hide the
+            // image by default.  Please refer to CallerInfoAsyncQuery.java for cases
+            // where CallerInfo.photoResource may be set.
+            if (photoImageResource == 0) {
                 {
-                    Connection conn = call.getEarliestConnection();
-                    if (conn != null) {
-                        Object o = conn.getUserData();
-                        if (o instanceof CallerInfo) {
-                            ci = (CallerInfo) o;
-                        } else if (o instanceof PhoneUtils.CallerInfoToken) {
-                            ci = ((PhoneUtils.CallerInfoToken) o).currentInfo;
-                        }
+                    if (!showCachedImage(mPhoto, ci) && (mPhotoTracker.getPhotoState() ==
+                            ContactsAsyncHelper.ImageTracker.DISPLAY_DEFAULT)) {
+                        ContactsAsyncHelper.updateImageViewWithContactPhotoAsync(ci,
+                                getContext(), mPhoto, mPhotoTracker.getPhotoUri(), -1);
+                        mPhotoTracker.setPhotoState(
+                                ContactsAsyncHelper.ImageTracker.DISPLAY_IMAGE);
                     }
                 }
-
-                if (ci != null) {
-                    photoImageResource = ci.photoResource;
-                }
-
-                // If no photoResource found, check to see if this is a conference call. If
-                // it is not a conference call:
-                //   1. Try to show the cached image
-                //   2. If the image is not cached, check to see if a load request has been
-                //      made already.
-                //   3. If the load request has not been made [DISPLAY_DEFAULT], start the
-                //      request and note that it has started by updating photo state with
-                //      [DISPLAY_IMAGE].
-                // Load requests started in (3) use a placeholder image of -1 to hide the
-                // image by default.  Please refer to CallerInfoAsyncQuery.java for cases
-                // where CallerInfo.photoResource may be set.
-                if (photoImageResource == 0) {
-  {
-                        if (!showCachedImage(mPhoto, ci) && (mPhotoTracker.getPhotoState() ==
-                                ContactsAsyncHelper.ImageTracker.DISPLAY_DEFAULT)) {
-                            ContactsAsyncHelper.updateImageViewWithContactPhotoAsync(ci,
-                                    getContext(), mPhoto, mPhotoTracker.getPhotoUri(), -1);
-                            mPhotoTracker.setPhotoState(
-                                    ContactsAsyncHelper.ImageTracker.DISPLAY_IMAGE);
-                        }
-                    }
-                } else {
-                    showImage(mPhoto, photoImageResource);
-                    mPhotoTracker.setPhotoState(ContactsAsyncHelper.ImageTracker.DISPLAY_IMAGE);
-                    return;
-                }
-                break;
+            } else {
+                showImage(mPhoto, photoImageResource);
+                mPhotoTracker.setPhotoState(ContactsAsyncHelper.ImageTracker.DISPLAY_IMAGE);
+                return;
+            }
+            break;
         }
 
         if (photoImageResource != 0) {
@@ -871,43 +898,12 @@ public class CallCard extends FrameLayout
         }
     }
 
-    /**
-     * Try to display the cached image from the callerinfo object.
-     *
-     *  @return true if we were able to find the image in the cache, false otherwise.
-     */
-    private static final boolean showCachedImage (ImageView view, CallerInfo ci) {
-        if ((ci != null) && ci.isCachedPhotoCurrent) {
-            if (ci.cachedPhoto != null) {
-                showImage(view, ci.cachedPhoto);
-            } else {
-                showImage(view, R.drawable.picture_unknown);
-            }
-            return true;
-        }
-        return false;
-    }
-
-    /** Helper function to display the resource in the imageview AND ensure its visibility.*/
-    private static final void showImage(ImageView view, int resource) {
-        view.setImageResource(resource);
-        view.setVisibility(View.VISIBLE);
-    }
-
-    /** Helper function to display the drawable in the imageview AND ensure its visibility.*/
-    private static final void showImage(ImageView view, Drawable drawable) {
-        view.setImageDrawable(drawable);
-        view.setVisibility(View.VISIBLE);
-    }
-
-    private SlidingCardManager mSlidingCardManager;
-    
     @Override
     public boolean dispatchTouchEvent(MotionEvent ev) {
         if (mSlidingCardManager != null) mSlidingCardManager.handleCallCardTouchEvent(ev);
         return true;
     }
-    
+
     public void setSlidingCardManager(SlidingCardManager slidingCardManager) {
         mSlidingCardManager = slidingCardManager;
     }
@@ -936,6 +932,7 @@ public class CallCard extends FrameLayout
     /**
      * Returns the "Menu button hint" TextView (which is manipulated
      * directly by the InCallScreen.)
+     *
      * @see InCallScreen.updateMenuButtonHint()
      */
     public /* package */ TextView getMenuButtonHint() {
@@ -948,7 +945,8 @@ public class CallCard extends FrameLayout
      *
      * @see InCallScreen.applyConfigurationToLayout()
      */
-    /* package */ public void updateForLandscapeMode() {
+    /* package */
+    public void updateForLandscapeMode() {
         if (DBG) log("updateForLandscapeMode()...");
 
         // The main CallCard's minimum height is smaller in landscape mode
@@ -970,7 +968,7 @@ public class CallCard extends FrameLayout
      * Sets the left and right margins of the specified ViewGroup (whose
      * LayoutParams object which must inherit from
      * ViewGroup.MarginLayoutParams.)
-     *
+     * <p>
      * TODO: Is there already a convenience method like this somewhere?
      */
     private void setSideMargins(ViewGroup vg, int margin) {

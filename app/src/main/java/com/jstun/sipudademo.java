@@ -80,7 +80,7 @@ public class sipudademo extends Activity {
 //
         for (int i = 1; i < 10; i++) {
             Map<String, String> map = new HashMap<>();
-            String acount = "10" + createText(i);
+            String acount = "19" + createText1(i);
             map.put("accountName", acount);
             accountList.add(map);
         }
@@ -88,7 +88,6 @@ public class sipudademo extends Activity {
 //        for (int i = 1; i < 1000; i++) {
 //            Map<String, String> map = new HashMap<>();
 //            String acount = "10" + createText(i);
-//
 //            if (i < 100) {
 //                acount = "10" + createText(i);
 //            } else {
@@ -106,6 +105,15 @@ public class sipudademo extends Activity {
 //            accountList.add(map);
 //        }
 
+    }
+
+
+    private String createText1(int index) {
+        String result = index + "";
+        if (result.length() == 1) {
+            result = "9" + result;
+        }
+        return result;
     }
 
     private String createText(int index) {
@@ -161,14 +169,13 @@ public class sipudademo extends Activity {
         }
 
         Map<String, String> map = accountList.get(selectedIndex);
-
+//
         ConfigSip configSip = new ConfigSip();
         configSip.setServer("13.246.65.101");
         configSip.setDns0("8.8.8.8");
         configSip.setPort("65060");
-//        configSip.setUsername(map.get("accountName"));
-        configSip.setUsername("1099");
-
+        configSip.setUsername(map.get("accountName"));
+//        configSip.setUsername("1099");
         configSip.setProtocol("TCP");
         configSip.setPassword("!@#123Qw");
         SipuaConfig.init(this, configSip);
